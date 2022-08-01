@@ -1,0 +1,39 @@
+node
+{
+    
+    def mavenHome = tool name: "maven3.8.6"
+    
+    properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '5', daysToKeepStr: '', numToKeepStr: '5')), pipelineTriggers([pollSCM('* * * * *')])])
+    
+    echo "The Job name is: ${env.JOB_NAME}"
+echo "The node name is: ${env.NODE_NAME}"
+echo "The workspace path is: ${env.WORKSPACE}"
+echo "The node label is: ${env.NODE_LABELS}"
+echo "The ebuild number is: ${env.BUILD_NUMBERS}"
+    
+stage('CheckoutCode'){
+git branch: 'development', credentialsId: '496419b5-eb2e-4da9-b020-0f7f417bd49d', url: 'https://github.com/lal-devops/maven-web-application.git'
+}
+
+stage('build'){
+sh "${mavenHome}/bin/mvn clean package"
+}
+
+*/  
+stage('ExecuteSonarQubeReport'){
+sh "${mavenHome}/bin/mvn sonar:sonar"
+}
+
+stage('UploadArtifactIntoNexus')
+{
+sh "${mavenHome}/bin/mvn deploy"
+}
+
+stage('DeployAppIntoTomcatServer'){
+sshagent(['5c807806-615d-46e1-8139-65613d9754b5']) {
+    sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@43.205.111.102:/opt/apache-tomcat-9.0.64/webapps/" 
+}
+}
+
+*/  
+}
